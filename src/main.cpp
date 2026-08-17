@@ -8,7 +8,7 @@
 #define DATA_PIN 4
 CRGB leds[NUM_LED];
 
-const int pinInputSignal = 34;
+const int pinInputSignal = A7;
 
 float getRMS()
 {
