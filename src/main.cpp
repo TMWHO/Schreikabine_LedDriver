@@ -12,7 +12,7 @@ const int pinInputSignal = A7;
 
 float getRMS()
 {
-	const int samples = 1000;
+	const int samples = 128;
 	float offset = 0;
 
 	// DC Offset 
@@ -53,17 +53,26 @@ void loop()
 	float rms = getRMS();
 
 	// RMS -> dB SPL
-	float dbspl = 20.0 * log10(rms) + calibration;
+	float dbspl = 20.0f * log10(rms) + calibration;
 
 	// Glätten
-	dbSmooth = dbSmooth * 0.9 + dbspl * 0.1;
+	// dbSmooth = dbSmooth * 0.7f + dbspl * 0.3f;
+	if (dbspl > dbSmooth)
+	{
+		// schnell hoch
+		dbSmooth += (dbspl - dbSmooth) * 0.4f;
+	}
+	else
+	{
+		// langsamer runter
+		dbSmooth += (dbspl - dbSmooth) * 0.1f;
+	}
 
 	// Wertebereich für LED Balken
-	float dbMin = 40;
-	float dbMax = 100;
+	float dbMin = 40.0f;
+	float dbMax = 100.0f;
 
 	int ledCount = map(dbSmooth, dbMin, dbMax, 0, NUM_LED);
-
 	ledCount = constrain(ledCount, 0, NUM_LED);
 
 	// Alle LEDs aus
@@ -74,19 +83,21 @@ void loop()
 	{
 		float percent = (float)i / NUM_LED;
 
-		if (percent < 0.5) { leds[i] = CRGB::Green; }
-		else if (percent < 0.8) { leds[i] = CRGB::Yellow; }
-		else { leds[i] = CRGB::Red; }		//eventuell low level constrain
-
-		FastLED.show();
-
-		// Debug
-		Serial.print("RMS: ");
-		Serial.print(rms);
-
-		Serial.print("  dB SPL: ");
-		Serial.println(dbSmooth);
-
-		delay(30);
+		if (percent < 0.5f)
+			leds[i] = CRGB::Green;
+		else if (percent < 0.8f)
+			leds[i] = CRGB::Yellow;
+		else
+			leds[i] = CRGB::Red;
 	}
+
+	// EINMAL pro Loop
+	FastLED.show();
+
+	// Debug
+	Serial.print("RMS: ");
+	Serial.print(rms);
+
+	Serial.print("  dB SPL: ");
+	Serial.println(dbSmooth);
 }
