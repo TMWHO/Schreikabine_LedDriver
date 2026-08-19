@@ -3,6 +3,8 @@
 // #include <math.h>
 
 #define DBG(x) Serial.println(x)
+#define DBGL(x) Serial.print(x)
+
 
 #define NUM_LED 160
 #define DATA_PIN 4
@@ -67,32 +69,32 @@ void loop()
 
 	static float dbSmooth = 0;
 	if (dbspl > dbSmooth) { dbSmooth += (dbspl - dbSmooth) * 0.4f; }	// attack
-	else { dbSmooth += (dbspl - dbSmooth) * 0.1f; }	// release
+	else { dbSmooth += (dbspl - dbSmooth) * 0.2f; }	// release
 
 	float dbMin = 40.0f;
-	float dbMax = 120.0f;
+	float dbMax = 90.0f;
 
 	int ledCount = map(dbSmooth, dbMin, dbMax, 0, NUM_LED);		
 	ledCount = constrain(ledCount, 0, NUM_LED);
 
-	// static float peakLedCount = 0.0f;
-	// static uint32_t peakStartedAt = 0;
-	// static uint32_t peakUpdatedAt = 0;
-	// uint32_t now = millis();
+	static float peakLedCount = 0.0f;
+	static uint32_t peakStartedAt = 0;
+	static uint32_t peakUpdatedAt = 0;
+	uint32_t now = millis();
 
-	// if (ledCount >= peakLedCount)
-	// {
-	// 	peakLedCount = ledCount;
-	// 	peakStartedAt = now;
-	// }
-	// else if (peakLedCount > ledCount && (uint32_t)(now - peakStartedAt) >= peakHoldTimeMs)
-	// {
-	// 	float elapsedSeconds = (now - peakUpdatedAt) / 1000.0f;
-	// 	peakLedCount -= peakReleaseLedPerSecond * elapsedSeconds;
-	// 	if (peakLedCount < ledCount) peakLedCount = ledCount;
-	// }
+	if (ledCount >= peakLedCount)
+	{
+		peakLedCount = ledCount;
+		peakStartedAt = now;
+	}
+	else if (peakLedCount > ledCount && (uint32_t)(now - peakStartedAt) >= peakHoldTimeMs)
+	{
+		float elapsedSeconds = (now - peakUpdatedAt) / 1000.0f;
+		peakLedCount -= peakReleaseLedPerSecond * elapsedSeconds;
+		if (peakLedCount < ledCount) peakLedCount = ledCount;
+	}
 
-	// peakUpdatedAt = now;
+	peakUpdatedAt = now;
 
 	fill_solid(leds, NUM_LED, CRGB::Black);
 
@@ -105,18 +107,18 @@ void loop()
 		else						leds[i] = CRGB::Red;
 	}
 
-	// if (peakLedCount > 0.0f)
-	// {
-	// 	int peakIndex = constrain((int)ceilf(peakLedCount) - 1, 0, NUM_LED - 1);
-	// 	leds[peakIndex] = CRGB::White;
-	// }
+	if (peakLedCount > 0.0f)
+	{
+		int peakIndex = constrain((int)ceilf(peakLedCount) - 1, 0, NUM_LED - 1);
+		leds[peakIndex] = CRGB::White;
+	}
 
 	FastLED.show();
 
-	DBG("RMS: ");
-	DBG(rms);
+	DBGL("RMS: ");
+	DBGL(rms);
 
-	DBG("  dB SPL: ");
+	DBGL("  dB SPL: ");
 	DBG(dbSmooth);
 }
 
