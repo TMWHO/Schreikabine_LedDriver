@@ -9,33 +9,8 @@
 CRGB leds[NUM_LED];
 
 const int pinInputSignal = A7;
-
-float getRMS()
-{
-	const int samples = 128;
-	float offset = 0;
-
-	// DC Offset 
-	for (int i = 0; i < samples; i++) { offset += analogRead(pinInputSignal); }
-
-	offset /= samples;
-
-	// RMS berechnen
-	float sumSquares = 0;
-
-	for (int i = 0; i < samples; i++)
-	{
-		float value = analogRead(pinInputSignal) - offset;
-		sumSquares += value * value;
-	}
-	return sqrt(sumSquares / samples);
-}
-
-// Kalibrierwert mit deinem dB-Meter bestimmen
-float calibration = 43.42; //dB=20⋅log10​(RMS)+K => K=dB−20⋅log10​(RMS)	: db(leveldBMeter), RMS(rms)
-
-// Glättung
-float dbSmooth = 0;
+const uint32_t peakHoldTimeMs = 500;
+const float peakReleaseLedPerSecond = 20.0f;
 
 void setup()
 {
@@ -82,16 +57,11 @@ void loop()
 {
 	float rms = getRMS();
 
-    // RMS -> dB SPL
-    float dbspl = 20.0f * log10(rms) + calibration;
+	if (rms < 0.001f)	rms = 0.001f;
+	if (!isfinite(rms) || rms <= 0.0f) { return; }
 
-    // Schutz gegen NaN / Infinity
-    if (!isfinite(dbspl))
-    {
-        Serial.println("Ungültiger dB-Wert!");
-        return;
-    }
-
+	// RMS -> dB SPL
+	float dbspl = 20.0f * log10(rms) + calibration;
 
 	if (!isfinite(dbspl)) { return; }			// iwos mochen wenn die checks failn...
 
@@ -102,7 +72,7 @@ void loop()
 	float dbMin = 40.0f;
 	float dbMax = 120.0f;
 
-	int ledCount = map(dbSmooth, dbMin, dbMax, 0, NUM_LED);
+	int ledCount = map(dbSmooth, dbMin, dbMax, 0, NUM_LED);		
 	ledCount = constrain(ledCount, 0, NUM_LED);
 
 	// static float peakLedCount = 0.0f;
@@ -143,10 +113,49 @@ void loop()
 
 	FastLED.show();
 
-	// Debug
-	Serial.print("RMS: ");
-	Serial.print(rms);
+	DBG("RMS: ");
+	DBG(rms);
 
-	Serial.print("  dB SPL: ");
-	Serial.println(dbSmooth);
+	DBG("  dB SPL: ");
+	DBG(dbSmooth);
 }
+
+
+
+// Stufe 2 – 2-Punkt-Kalibrierung
+
+// Wenn die Kennlinie linear ist:
+
+// float a = ...;
+// float b = ...;
+
+
+// float dbspl = a * log10f(rms) + b;
+
+// Fertig.
+
+// Stufe 3 – nur wenn nötig LUT
+
+// Wenn du beispielsweise feststellst:
+
+// 40 dB → sehr gut
+// 50 dB → sehr gut
+// 60 dB → sehr gut
+// 70 dB → -1 dB
+// 80 dB → -3 dB
+// 90 dB → -5 dB
+// 100 dB → -8 dB
+
+// dann würde ich nicht versuchen, das mit einer komplizierten mathematischen Funktion zu erschlagen. Dann ist eine LUT tatsächlich sinnvoll:
+
+// const float calibrationTable[][2] = {
+//     {40, ...},
+//     {50, ...},
+//     {60, ...},
+//     {70, ...},
+//     {80, ...},
+//     {90, ...},
+//     {100, ...}
+// };
+
+// und zwischen den Punkten wird interpoliert.
