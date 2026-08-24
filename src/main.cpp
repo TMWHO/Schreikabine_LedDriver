@@ -53,7 +53,7 @@ float getRMS()
 }
 
 // Kalibrierwert mit dB-Meter bestimmen
-float calibration = 33.42; //dB=20⋅log10​(RMS)+K => K=dB−20⋅log10​(RMS)	: db(leveldBMeter), RMS(rms)
+float calibration = 33.00f; //dB=20⋅log10​(RMS)+K => K=dB−20⋅log10​(RMS)	: db(leveldBMeter), RMS(rms)
 
 void loop()
 {
