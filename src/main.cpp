@@ -28,28 +28,55 @@ void setup()
 
 float getRMS()
 {
-	const int samples = 256;
+
+	//////calibrierung
+	const int samples = 4096;
 
 	float sum = 0.0f;
-	float values[samples];
 
+	// Mittelwert bestimmen
 	for (int i = 0; i < samples; i++)
 	{
-		values[i] = analogRead(pinInputSignal);
-		sum += values[i];
+		sum += analogRead(pinInputSignal);
 	}
 
 	float offset = sum / samples;
 
+	// RMS bestimmen
 	float sumSquares = 0.0f;
 
 	for (int i = 0; i < samples; i++)
 	{
-		float value = values[i] - offset;
+		float value = analogRead(pinInputSignal) - offset;
 		sumSquares += value * value;
 	}
 
 	return sqrtf(sumSquares / samples);
+
+
+	/// für live betrieb...heavy as fuck mit den float array....
+	// const int samples = 256;
+
+	// float sum = 0.0f;
+	// float values[samples];
+
+	// for (int i = 0; i < samples; i++)
+	// {
+	// 	values[i] = analogRead(pinInputSignal);
+	// 	sum += values[i];
+	// }
+
+	// float offset = sum / samples;
+
+	// float sumSquares = 0.0f;
+
+	// for (int i = 0; i < samples; i++)
+	// {
+	// 	float value = values[i] - offset;
+	// 	sumSquares += value * value;
+	// }
+
+	// return sqrtf(sumSquares / samples);
 }
 
 // Kalibrierwert mit dB-Meter bestimmen
@@ -74,7 +101,7 @@ void loop()
 	float dbMin = 40.0f;
 	float dbMax = 90.0f;
 
-	int ledCount = map(dbSmooth, dbMin, dbMax, 0, NUM_LED);		
+	int ledCount = map(dbSmooth, dbMin, dbMax, 0, NUM_LED);
 	ledCount = constrain(ledCount, 0, NUM_LED);
 
 	static float peakLedCount = 0.0f;
