@@ -16,7 +16,9 @@ const float peakReleaseLedPerSecond = 20.0f;
 
 void setup()
 {
-	Serial.begin(9600);
+	Serial.begin(115200);
+	Serial1.begin(115200);
+
 	DBG("Serial online!");
 
 	FastLED.addLeds<WS2812, DATA_PIN, GRB>(leds, NUM_LED);
@@ -29,58 +31,76 @@ void setup()
 float getRMS()
 {
 
-	//////calibrierung
-	const int samples = 4096;
-
-	float sum = 0.0f;
-
-	// Mittelwert bestimmen
-	for (int i = 0; i < samples; i++)
-	{
-		sum += analogRead(pinInputSignal);
-	}
-
-	float offset = sum / samples;
-
-	// RMS bestimmen
-	float sumSquares = 0.0f;
-
-	for (int i = 0; i < samples; i++)
-	{
-		float value = analogRead(pinInputSignal) - offset;
-		sumSquares += value * value;
-	}
-
-	return sqrtf(sumSquares / samples);
-
-
-	/// für live betrieb...heavy as fuck mit den float array....
-	// const int samples = 256;
+	// // //////calibrierung
+	// const int samples = 2048;
 
 	// float sum = 0.0f;
-	// float values[samples];
 
+	// // Mittelwert bestimmen
 	// for (int i = 0; i < samples; i++)
 	// {
-	// 	values[i] = analogRead(pinInputSignal);
-	// 	sum += values[i];
+	// 	sum += analogRead(pinInputSignal);
 	// }
 
 	// float offset = sum / samples;
 
+	// // RMS bestimmen
 	// float sumSquares = 0.0f;
 
 	// for (int i = 0; i < samples; i++)
 	// {
-	// 	float value = values[i] - offset;
+	// 	float value = analogRead(pinInputSignal) - offset;
 	// 	sumSquares += value * value;
 	// }
 
 	// return sqrtf(sumSquares / samples);
+
+
+	/// für live betrieb...heavy as fuck mit den float array....aber so garantieren wir das wir mit dem SELBEN samples arbeit...bei calli egal
+	const int samples = 256;
+
+	float sum = 0.0f;
+	float values[samples];
+
+	for (int i = 0; i < samples; i++)
+	{
+		values[i] = analogRead(pinInputSignal);
+		sum += values[i];
+	}
+
+	float offset = sum / samples;
+
+	float sumSquares = 0.0f;
+
+	for (int i = 0; i < samples; i++)
+	{
+		float value = values[i] - offset;
+		sumSquares += value * value;
+	}
+
+	return sqrtf(sumSquares / samples);
 }
 
 // Kalibrierwert mit dB-Meter bestimmen
-float calibration = 33.00f; //dB=20⋅log10​(RMS)+K => K=dB−20⋅log10​(RMS)	: db(leveldBMeter), RMS(rms)
+float calibration = 40.00f; //dB=20⋅log10​(RMS)+K => K=dB−20⋅log10​(RMS)	: db(leveldBMeter), RMS(rms)
+
+int16_t dbSend = 0;
+
+constexpr uint8_t START_BYTE = 0xAA;
+
+void sendDB(int16_t db)
+{
+	uint8_t low = db & 0xFF;
+	uint8_t high = (db >> 8) & 0xFF;
+
+	uint8_t checksum = low ^ high;
+
+	Serial1.write(START_BYTE);
+	Serial1.write(low);
+	Serial1.write(high);
+	Serial1.write(checksum);
+}
+
 
 void loop()
 {
@@ -97,6 +117,20 @@ void loop()
 	static float dbSmooth = 0;
 	if (dbspl > dbSmooth) { dbSmooth += (dbspl - dbSmooth) * 0.4f; }	// attack
 	else { dbSmooth += (dbspl - dbSmooth) * 0.2f; }	// release
+
+	dbSend = dbSmooth;
+	// Serial1.write((uint8_t*)&dbSend, sizeof(dbSend)); //send shit
+	// Serial1.println((int)dbSmooth);
+
+	// Serial1.write(0xAA);
+	// Serial1.write((uint8_t)(dbSend & 0xFF));
+	// Serial1.write((uint8_t)(dbSend >> 8) & 0xFF);
+
+
+	// int16_t db = 87;
+	sendDB(dbSmooth);
+
+
 
 	float dbMin = 40.0f;
 	float dbMax = 90.0f;
