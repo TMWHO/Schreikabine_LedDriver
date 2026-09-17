@@ -118,18 +118,19 @@ void loop()
 	if (dbspl > dbSmooth) { dbSmooth += (dbspl - dbSmooth) * 0.4f; }	// attack
 	else { dbSmooth += (dbspl - dbSmooth) * 0.2f; }	// release
 
-	dbSend = dbSmooth;
-	// Serial1.write((uint8_t*)&dbSend, sizeof(dbSend)); //send shit
-	// Serial1.println((int)dbSmooth);
-
-	// Serial1.write(0xAA);
-	// Serial1.write((uint8_t)(dbSend & 0xFF));
-	// Serial1.write((uint8_t)(dbSend >> 8) & 0xFF);
 
 
-	// int16_t db = 87;
+
+	////// Send den scheis
+
+	// if (dbSmooth >= 86dB)
 	sendDB(dbSmooth);
+	// else ....
 
+	// if (dbSmooth > dbSmoothMax) dbSmoothMax = dbSmooth
+
+	// if (btnReset == gedrückt)
+	//sendDB(0) // schaltet die 7seg aus
 
 
 	float dbMin = 40.0f;
