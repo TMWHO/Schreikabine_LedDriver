@@ -14,12 +14,16 @@ const int pinInputSignal = A7;
 const uint32_t peakHoldTimeMs = 500;
 const float peakReleaseLedPerSecond = 20.0f;
 
+const int pinReset = 4;
+
 void setup()
 {
 	Serial.begin(115200);
 	Serial1.begin(115200);
 
 	DBG("Serial online!");
+
+	pinMode(pinReset, INPUT_PULLUP);
 
 	FastLED.addLeds<WS2812, DATA_PIN, GRB>(leds, NUM_LED);
 	FastLED.setBrightness(255);
@@ -57,7 +61,7 @@ float getRMS()
 
 
 	/// für live betrieb...heavy as fuck mit den float array....aber so garantieren wir das wir mit dem SELBEN samples arbeit...bei calli egal
-	const int samples = 256;
+	const int samples = 256;			// eventuell nochmal unpassen, wenn dor led streifen faxen mocht
 
 	float sum = 0.0f;
 	float values[samples];
@@ -101,9 +105,11 @@ void sendDB(int16_t db)
 	Serial1.write(checksum);
 }
 
-
+int dBMin = 60;
 void loop()
 {
+
+	// rechn dB scheis aus
 	float rms = getRMS();
 
 	if (rms < 0.001f)	rms = 0.001f;
@@ -123,9 +129,8 @@ void loop()
 
 	////// Send den scheis
 
-	// if (dbSmooth >= 86dB)
-	sendDB(dbSmooth);
-	// else ....
+	if (dbSmooth >= dBMin)	sendDB(dbSmooth);
+	else 					sendDB(0);		//schaltet die 7seg AUS 
 
 	// if (dbSmooth > dbSmoothMax) dbSmoothMax = dbSmooth
 
@@ -133,6 +138,8 @@ void loop()
 	//sendDB(0) // schaltet die 7seg aus
 
 
+
+	// led streifen stuff
 	float dbMin = 40.0f;
 	float dbMax = 90.0f;
 
