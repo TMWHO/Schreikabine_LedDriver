@@ -7,7 +7,7 @@
 
 
 #define NUM_LED 160
-#define DATA_PIN 4
+#define DATA_PIN 6
 CRGB leds[NUM_LED];
 
 const int pinInputSignal = A7;
@@ -15,6 +15,21 @@ const uint32_t peakHoldTimeMs = 500;
 const float peakReleaseLedPerSecond = 20.0f;
 
 const int pinReset = 4;
+
+constexpr uint8_t START_BYTE = 0xAA;
+
+void sendDB(int16_t db)
+{
+	uint8_t low = db & 0xFF;
+	uint8_t high = (db >> 8) & 0xFF;
+
+	uint8_t checksum = low ^ high;
+
+	Serial1.write(START_BYTE);
+	Serial1.write(low);
+	Serial1.write(high);
+	Serial1.write(checksum);
+}
 
 void setup()
 {
@@ -30,6 +45,8 @@ void setup()
 
 	FastLED.clear();
 	FastLED.show();
+
+	sendDB(0); // schaltet die 7seg aus
 }
 
 float getRMS()
@@ -90,20 +107,7 @@ float calibration = 40.00f; //dB=20⋅log10​(RMS)+K => K=dB−20⋅log10​(RM
 
 int16_t dbSend = 0;
 
-constexpr uint8_t START_BYTE = 0xAA;
 
-void sendDB(int16_t db)
-{
-	uint8_t low = db & 0xFF;
-	uint8_t high = (db >> 8) & 0xFF;
-
-	uint8_t checksum = low ^ high;
-
-	Serial1.write(START_BYTE);
-	Serial1.write(low);
-	Serial1.write(high);
-	Serial1.write(checksum);
-}
 
 int dBMin = 60;
 void loop()
@@ -129,13 +133,17 @@ void loop()
 
 	////// Send den scheis
 
-	if (dbSmooth >= dBMin)	sendDB(dbSmooth);
-	else 					sendDB(0);		//schaltet die 7seg AUS 
-
-	// if (dbSmooth > dbSmoothMax) dbSmoothMax = dbSmooth
-
-	// if (btnReset == gedrückt)
-	//sendDB(0) // schaltet die 7seg aus
+	
+	static int dbSmoothMax = 0;
+	
+	if (dbSmooth > dbSmoothMax) dbSmoothMax = dbSmooth;		
+	if (dbSmooth >= dBMin)	sendDB(dbSmoothMax);	
+	if (digitalRead(pinReset) == LOW)
+	{
+		dbSmoothMax = 0;
+		sendDB(0); // schaltet die 7seg aus
+		DBG("betatigt");
+	}	
 
 
 
