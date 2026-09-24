@@ -49,6 +49,9 @@ void setup()
 	sendDB(0); // schaltet die 7seg aus
 }
 
+int adcSampleMin = 1023;
+int adcSampleMax = 0;
+
 float getRMS()
 {
 
@@ -82,11 +85,15 @@ float getRMS()
 
 	float sum = 0.0f;
 	float values[samples];
+	adcSampleMin = 1023;
+	adcSampleMax = 0;
 
 	for (int i = 0; i < samples; i++)
 	{
 		values[i] = analogRead(pinInputSignal);
 		sum += values[i];
+		if (values[i] < adcSampleMin) adcSampleMin = values[i];
+		if (values[i] > adcSampleMax) adcSampleMax = values[i];
 	}
 
 	float offset = sum / samples;
@@ -110,6 +117,36 @@ int16_t dbSend = 0;
 const float calibrationScale = 1.16f;
 const float calibrationOffset = -7.40f;
 
+const float calibrationTable[][2] = {
+	{59.0f, 65.0f},
+	{61.0f, 71.0f},
+	{69.0f, 80.0f},
+	{75.0f, 85.0f},
+	{81.0f, 90.0f},
+	{85.0f, 95.0f},
+	{90.0f, 97.0f}
+};
+const uint8_t calibrationTableSize = sizeof(calibrationTable) / sizeof(calibrationTable[0]);
+
+float calibrateDb(float db)
+{
+	if (db <= calibrationTable[0][0]) return db + (calibrationTable[0][1] - calibrationTable[0][0]);
+
+	for (uint8_t i = 1; i < calibrationTableSize; i++)
+	{
+		if (db <= calibrationTable[i][0])
+		{
+			float inputRange = calibrationTable[i][0] - calibrationTable[i - 1][0];
+			float targetRange = calibrationTable[i][1] - calibrationTable[i - 1][1];
+			float fraction = (db - calibrationTable[i - 1][0]) / inputRange;
+			return calibrationTable[i - 1][1] + fraction * targetRange;
+		}
+	}
+
+	const uint8_t last = calibrationTableSize - 1;
+	return db + (calibrationTable[last][1] - calibrationTable[last][0]);
+}
+
 int dBMin = 60;
 
 
@@ -124,7 +161,8 @@ void loop()
 
 	// RMS -> dB SPL
 	float dbRaw = 20.0f * log10(rms) + calibration;
-	float dbspl = calibrationScale * dbRaw + calibrationOffset;
+	float dbBeforeLut = calibrationScale * dbRaw + calibrationOffset;
+	float dbspl = calibrateDb(dbBeforeLut);
 
 	if (!isfinite(dbspl)) { return; }			// iwos mochen wenn die checks failn...
 
@@ -204,7 +242,11 @@ void loop()
 	DBGL(rms);
 
 	DBGL("  dB SPL: ");
-	DBG(dbSmooth);
+	DBGL(dbSmooth);
+	DBGL("  ADC min/max: ");
+	DBGL(adcSampleMin);
+	DBGL("/");
+	DBG(adcSampleMax);
 }
 
 
