@@ -107,9 +107,12 @@ float calibration = 40.00f; //dB=20⋅log10​(RMS)+K => K=dB−20⋅log10​(RM
 
 int16_t dbSend = 0;
 
-
+const float calibrationScale = 1.16f;
+const float calibrationOffset = -7.40f;
 
 int dBMin = 60;
+
+
 void loop()
 {
 
@@ -120,7 +123,8 @@ void loop()
 	if (!isfinite(rms) || rms <= 0.0f) { return; }
 
 	// RMS -> dB SPL
-	float dbspl = 20.0f * log10(rms) + calibration;
+	float dbRaw = 20.0f * log10(rms) + calibration;
+	float dbspl = calibrationScale * dbRaw + calibrationOffset;
 
 	if (!isfinite(dbspl)) { return; }			// iwos mochen wenn die checks failn...
 
@@ -134,16 +138,20 @@ void loop()
 	////// Send den scheis
 
 	
-	static int dbSmoothMax = 0;
+	// static int dbSmoothMax = 0;
 	
-	if (dbSmooth > dbSmoothMax) dbSmoothMax = dbSmooth;		
-	if (dbSmooth >= dBMin)	sendDB(dbSmoothMax);	
-	if (digitalRead(pinReset) == LOW)
-	{
-		dbSmoothMax = 0;
-		sendDB(0); // schaltet die 7seg aus
-		DBG("betatigt");
-	}	
+	// if (dbSmooth > dbSmoothMax) dbSmoothMax = dbSmooth;		
+	// if (dbSmooth >= dBMin)	sendDB(dbSmoothMax);	
+	// if (digitalRead(pinReset) == LOW)
+	// {
+	// 	dbSmoothMax = 0;
+	// 	sendDB(0); // schaltet die 7seg aus
+	// 	DBG("betatigt");
+	// }	
+
+
+	sendDB(dbSmooth);		// test ohne reset button
+	// sendDB(123);
 
 
 
