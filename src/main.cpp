@@ -5,21 +5,24 @@
 #define DBG(x) Serial.println(x)
 #define DBGL(x) Serial.print(x)
 
-
 #define NUM_LED 120
 #define DATA_PIN 6
+CRGB leds[NUM_LED];
+
 
 constexpr int LED_START = 10;		// erste aktive led auf dem streifen
 constexpr int LED_END = 100;		// letzte aktive led auf dem streifen
 constexpr int ACTIVE_LED_COUNT = LED_END - LED_START + 1;
 
-CRGB leds[NUM_LED];
+constexpr int dbMin = 60;				// minimaler dB wert der ins leds array geschrieben wird
+constexpr int dbMax = 110;				// max dB wert .....
 
-const int pinInputSignal = A7;
-const uint32_t peakHoldTimeMs = 500;
-const float peakReleaseLedPerSecond = 20.0f;
 
-const int pinReset = 4;
+constexpr int pinInputSignal = A7;
+constexpr uint32_t peakHoldTimeMs = 500;			// peak hold zeit
+constexpr float peakReleaseLedPerSecond = 25.0f;	// preak release zeit
+
+constexpr byte pinReset = 4;
 
 constexpr uint8_t START_BYTE = 0xAA;
 
@@ -152,7 +155,6 @@ float calibrateDb(float db)
 	return db + (calibrationTable[last][1] - calibrationTable[last][0]);
 }
 
-int dBMin = 60;
 
 
 void loop()
@@ -180,9 +182,9 @@ void loop()
 
 	////// Send den scheis
 
-	
+
 	// static int dbSmoothMax = 0;
-	
+
 	// if (dbSmooth > dbSmoothMax) dbSmoothMax = dbSmooth;		
 	// if (dbSmooth >= dBMin)	sendDB(dbSmoothMax);	
 	// if (digitalRead(pinReset) == LOW)
@@ -199,8 +201,7 @@ void loop()
 
 
 	// led streifen stuff
-	float dbMin = 60.0f;
-	float dbMax = 110.0f;
+
 
 	int ledCount = map(dbSmooth, dbMin, dbMax, 0, ACTIVE_LED_COUNT);
 	ledCount = constrain(ledCount, 0, ACTIVE_LED_COUNT);
