@@ -8,6 +8,11 @@
 
 #define NUM_LED 120
 #define DATA_PIN 6
+
+constexpr int LED_START = 10;		// erste aktive led auf dem streifen
+constexpr int LED_END = 100;		// letzte aktive led auf dem streifen
+constexpr int ACTIVE_LED_COUNT = LED_END - LED_START + 1;
+
 CRGB leds[NUM_LED];
 
 const int pinInputSignal = A7;
@@ -194,11 +199,11 @@ void loop()
 
 
 	// led streifen stuff
-	float dbMin = 40.0f;
+	float dbMin = 60.0f;
 	float dbMax = 110.0f;
 
-	int ledCount = map(dbSmooth, dbMin, dbMax, 0, NUM_LED);
-	ledCount = constrain(ledCount, 0, NUM_LED);
+	int ledCount = map(dbSmooth, dbMin, dbMax, 0, ACTIVE_LED_COUNT);
+	ledCount = constrain(ledCount, 0, ACTIVE_LED_COUNT);
 
 	static float peakLedCount = 0.0f;
 	static uint32_t peakStartedAt = 0;
@@ -223,8 +228,8 @@ void loop()
 
 	for (int i = 0; i < ledCount; i++)
 	{
-		float percent = (float)i / NUM_LED;
-		int physicalIndex = NUM_LED - 1 - i;
+		float percent = (float)i / ACTIVE_LED_COUNT;
+		int physicalIndex = LED_END - i;
 		CRGB color;
 
 		if (percent < 0.5f)
@@ -243,8 +248,8 @@ void loop()
 
 	if (peakLedCount > 0.0f)
 	{
-		int peakIndex = constrain((int)ceilf(peakLedCount) - 1, 0, NUM_LED - 1);
-		leds[NUM_LED - 1 - peakIndex] = CRGB::White;
+		int peakIndex = constrain((int)ceilf(peakLedCount) - 1, 0, ACTIVE_LED_COUNT - 1);
+		leds[LED_END - peakIndex] = CRGB::White;
 	}
 
 	FastLED.show();
