@@ -6,7 +6,7 @@
 #define DBGL(x) Serial.print(x)
 
 
-#define NUM_LED 160
+#define NUM_LED 120
 #define DATA_PIN 6
 CRGB leds[NUM_LED];
 
@@ -195,7 +195,7 @@ void loop()
 
 	// led streifen stuff
 	float dbMin = 40.0f;
-	float dbMax = 90.0f;
+	float dbMax = 110.0f;
 
 	int ledCount = map(dbSmooth, dbMin, dbMax, 0, NUM_LED);
 	ledCount = constrain(ledCount, 0, NUM_LED);
@@ -224,16 +224,17 @@ void loop()
 	for (int i = 0; i < ledCount; i++)
 	{
 		float percent = (float)i / NUM_LED;
+		int physicalIndex = NUM_LED - 1 - i;
 
-		if (percent < 0.5f)			leds[i] = CRGB::Green;
-		else if (percent < 0.8f)	leds[i] = CRGB::Yellow;
-		else						leds[i] = CRGB::Red;
+		if (percent < 0.35f)			leds[physicalIndex] = CRGB::Green;
+		else if (percent < 0.72f)			leds[physicalIndex] = CRGB::Yellow;
+		else						leds[physicalIndex] = CRGB::Red;
 	}
 
 	if (peakLedCount > 0.0f)
 	{
 		int peakIndex = constrain((int)ceilf(peakLedCount) - 1, 0, NUM_LED - 1);
-		leds[peakIndex] = CRGB::White;
+		leds[NUM_LED - 1 - peakIndex] = CRGB::White;
 	}
 
 	FastLED.show();
