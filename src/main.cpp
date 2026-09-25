@@ -225,10 +225,20 @@ void loop()
 	{
 		float percent = (float)i / NUM_LED;
 		int physicalIndex = NUM_LED - 1 - i;
+		CRGB color;
 
-		if (percent < 0.35f)			leds[physicalIndex] = CRGB::Green;
-		else if (percent < 0.72f)			leds[physicalIndex] = CRGB::Yellow;
-		else						leds[physicalIndex] = CRGB::Red;
+		if (percent < 0.5f)
+		{
+			uint8_t blendAmount = (uint8_t)(percent * 2.0f * 255.0f);
+			color = blend(CRGB::Green, CRGB::Yellow, blendAmount);
+		}
+		else
+		{
+			uint8_t blendAmount = (uint8_t)((percent - 0.5f) * 2.0f * 255.0f);
+			color = blend(CRGB::Yellow, CRGB::Red, blendAmount);
+		}
+
+		leds[physicalIndex] = color;
 	}
 
 	if (peakLedCount > 0.0f)
