@@ -5,9 +5,15 @@
 #define DBG(x) Serial.println(x)
 #define DBGL(x) Serial.print(x)
 
-#define NUM_LED 120
-#define DATA_PIN 6
-CRGB leds[NUM_LED];
+// led saule
+#define NUM_LED_SAULE 120
+#define DATA_PIN_SAULE 6
+CRGB ledsSaule[NUM_LED_SAULE];
+
+// // zielschrei symbole
+#define NUM_LED_SYMBOLE 60
+#define DATA_PIN_SYMBOLE 7
+CRGB ledsSymbole[NUM_LED_SYMBOLE];
 
 
 constexpr int LED_START = 10;		// erste aktive led auf dem streifen
@@ -23,6 +29,8 @@ constexpr uint32_t peakHoldTimeMs = 500;			// peak hold zeit
 constexpr float peakReleaseLedPerSecond = 25.0f;	// preak release zeit
 
 constexpr byte pinReset = 4;
+constexpr byte pinStart = 5;
+
 
 constexpr uint8_t START_BYTE = 0xAA;
 
@@ -47,8 +55,12 @@ void setup()
 	DBG("Serial online!");
 
 	pinMode(pinReset, INPUT_PULLUP);
+	pinMode(pinStart, INPUT_PULLUP);
 
-	FastLED.addLeds<WS2812, DATA_PIN, GRB>(leds, NUM_LED);
+
+	FastLED.addLeds<WS2812, DATA_PIN_SAULE, GRB>(ledsSaule, NUM_LED_SAULE);				// ACHTUNG! uuat ändern bei led streifen änderung
+	FastLED.addLeds<WS2812, DATA_PIN_SYMBOLE, GRB>(ledsSymbole, NUM_LED_SYMBOLE);
+
 	FastLED.setBrightness(255);
 
 	FastLED.clear();
@@ -225,7 +237,7 @@ void loop()
 
 	peakUpdatedAt = now;
 
-	fill_solid(leds, NUM_LED, CRGB::Black);
+	fill_solid(ledsSaule, NUM_LED_SAULE, CRGB::Black);
 
 	for (int i = 0; i < ledCount; i++)
 	{
@@ -244,14 +256,15 @@ void loop()
 			color = blend(CRGB::Yellow, CRGB::Red, blendAmount);
 		}
 
-		leds[physicalIndex] = color;
+		ledsSaule[physicalIndex] = color;
 	}
 
 	if (peakLedCount > 0.0f)
 	{
 		int peakIndex = constrain((int)ceilf(peakLedCount) - 1, 0, ACTIVE_LED_COUNT - 1);
-		leds[LED_END - peakIndex] = CRGB::White;
+		ledsSaule[LED_END - peakIndex] = CRGB::White;
 	}
+
 
 	FastLED.show();
 
