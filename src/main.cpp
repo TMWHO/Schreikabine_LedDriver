@@ -17,6 +17,7 @@ CRGB ledsSymbole[NUM_LED_SYMBOLE];
 
 #define NUM_SEGMENTS_SYMBOLE 5
 const uint8_t segmentStart[NUM_SEGMENTS_SYMBOLE + 1] = {0, 12, 24, 36, 48, 60};
+const uint8_t segmentDbLut[NUM_SEGMENTS_SYMBOLE] = {70, 75, 80, 90, 95};			//dB zuweisungen an die entsprechenden segmente
 
 void setSegment(uint8_t segment, CRGB color)
 {
@@ -43,13 +44,17 @@ constexpr float peakReleaseLedPerSecond = 25.0f;	// preak release zeit
 constexpr byte pinReset = 4;
 constexpr byte pinStart = 5;
 
+
+// random symbol animations scheise
 constexpr uint32_t animationFastDurationMs = 4000;
 constexpr uint16_t animationStartDelayMs = 80;
 constexpr uint16_t animationDelayIncreaseMs = 60;
 
 bool animationRunning = false;
 bool animationSlowingDown = false;
+bool resultVisible = false;
 uint8_t animationSegment = 0;
+uint8_t resultSegment = 0;
 uint8_t animationStepsRemaining = 0;
 uint8_t animationStep = 0;
 uint32_t nextAnimationAt = 0;
@@ -67,6 +72,7 @@ bool updateSegmentAnimation()
 	if (resetState == LOW && previousResetState == HIGH)
 	{
 		animationRunning = false;
+		resultVisible = false;
 		fill_solid(ledsSymbole, NUM_LED_SYMBOLE, CRGB::Black);
 		changed = true;
 	}
@@ -74,6 +80,7 @@ bool updateSegmentAnimation()
 	{
 		animationRunning = true;
 		animationSlowingDown = false;
+		resultVisible = false;
 		animationSegment = 0;
 		animationStepsRemaining = 0;
 		animationStep = 0;
@@ -108,6 +115,16 @@ bool updateSegmentAnimation()
 			if (animationStepsRemaining == 0)
 			{
 				animationRunning = false;
+				resultVisible = true;
+				resultSegment = animationSegment;
+				int markerIndex = map(segmentDbLut[resultSegment], dbMin, dbMax, LED_END, LED_START);
+				DBG("Animation beendet");
+				DBGL("Segment: ");
+				DBGL(resultSegment + 1);
+				DBGL("  dB: ");
+				DBGL(segmentDbLut[resultSegment]);
+				DBGL("  LED-Index: ");
+				DBG(markerIndex);
 			}
 			else
 			{
@@ -363,6 +380,13 @@ void loop()
 	{
 		int peakIndex = constrain((int)ceilf(peakLedCount) - 1, 0, ACTIVE_LED_COUNT - 1);
 		ledsSaule[LED_END - peakIndex] = CRGB::White;
+	}
+
+	if (resultVisible)
+	{
+		int markerIndex = map(segmentDbLut[resultSegment], dbMin, dbMax, LED_END, LED_START);
+		markerIndex = constrain(markerIndex, LED_START, LED_END);
+		ledsSaule[markerIndex] = CRGB::Blue;
 	}
 
 	// setSegment(0, CRGB::Red);    // LEDs 0–11
