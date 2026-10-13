@@ -15,6 +15,19 @@ CRGB ledsSaule[NUM_LED_SAULE];
 #define DATA_PIN_SYMBOLE 7
 CRGB ledsSymbole[NUM_LED_SYMBOLE];
 
+#define NUM_SEGMENTS_SYMBOLE 6
+#define LEDS_PER_SEGMENT 12
+const uint8_t segmentStart[NUM_SEGMENTS_SYMBOLE] = {0, 12, 24, 36, 48, 60};
+
+void setSegment(uint8_t segment, CRGB color)
+{
+	if (segment >= NUM_SEGMENTS_SYMBOLE) return;
+
+	for (int i = 0; i < LEDS_PER_SEGMENT; i++) {
+		ledsSymbole[segment * LEDS_PER_SEGMENT + i] = color;
+	}
+}
+
 
 constexpr int LED_START = 10;		// erste aktive led auf dem streifen
 constexpr int LED_END = 100;		// letzte aktive led auf dem streifen
@@ -264,6 +277,10 @@ void loop()
 		int peakIndex = constrain((int)ceilf(peakLedCount) - 1, 0, ACTIVE_LED_COUNT - 1);
 		ledsSaule[LED_END - peakIndex] = CRGB::White;
 	}
+
+	// setSegment(0, CRGB::Red);    // LEDs 0–11
+	// setSegment(1, CRGB::Yellow1);  // LEDs 12–23
+	// setSegment(2, CRGB::Blue);   // LEDs 24–35
 
 
 	FastLED.show();
