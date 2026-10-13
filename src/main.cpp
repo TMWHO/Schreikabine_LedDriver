@@ -15,16 +15,15 @@ CRGB ledsSaule[NUM_LED_SAULE];
 #define DATA_PIN_SYMBOLE 7
 CRGB ledsSymbole[NUM_LED_SYMBOLE];
 
-#define NUM_SEGMENTS_SYMBOLE 6
-#define LEDS_PER_SEGMENT 12
-const uint8_t segmentStart[NUM_SEGMENTS_SYMBOLE] = {0, 12, 24, 36, 48, 60};
+#define NUM_SEGMENTS_SYMBOLE 5
+const uint8_t segmentStart[NUM_SEGMENTS_SYMBOLE + 1] = {0, 12, 24, 36, 48, 60};
 
 void setSegment(uint8_t segment, CRGB color)
 {
 	if (segment >= NUM_SEGMENTS_SYMBOLE) return;
 
-	for (int i = 0; i < LEDS_PER_SEGMENT; i++) {
-		ledsSymbole[segment * LEDS_PER_SEGMENT + i] = color;
+	for (uint8_t i = segmentStart[segment]; i < segmentStart[segment + 1]; i++) {
+		ledsSymbole[i] = color;
 	}
 }
 
@@ -43,6 +42,87 @@ constexpr float peakReleaseLedPerSecond = 25.0f;	// preak release zeit
 
 constexpr byte pinReset = 4;
 constexpr byte pinStart = 5;
+
+constexpr uint32_t animationFastDurationMs = 4000;
+constexpr uint16_t animationStartDelayMs = 80;
+constexpr uint16_t animationDelayIncreaseMs = 60;
+
+bool animationRunning = false;
+bool animationSlowingDown = false;
+uint8_t animationSegment = 0;
+uint8_t animationStepsRemaining = 0;
+uint8_t animationStep = 0;
+uint32_t nextAnimationAt = 0;
+uint32_t animationStartedAt = 0;
+bool previousStartState = HIGH;
+bool previousResetState = HIGH;
+
+bool updateSegmentAnimation()
+{
+	bool changed = false;
+	bool startState = digitalRead(pinStart);
+	bool resetState = digitalRead(pinReset);
+	uint32_t now = millis();
+
+	if (resetState == LOW && previousResetState == HIGH)
+	{
+		animationRunning = false;
+		fill_solid(ledsSymbole, NUM_LED_SYMBOLE, CRGB::Black);
+		changed = true;
+	}
+	else if (startState == LOW && previousStartState == HIGH && !animationRunning)
+	{
+		animationRunning = true;
+		animationSlowingDown = false;
+		animationSegment = 0;
+		animationStepsRemaining = 0;
+		animationStep = 0;
+		animationStartedAt = now;
+		nextAnimationAt = now + animationStartDelayMs;
+		fill_solid(ledsSymbole, NUM_LED_SYMBOLE, CRGB::Black);
+		setSegment(animationSegment, CRGB::White);
+		changed = true;
+	}
+
+	previousStartState = startState;
+	previousResetState = resetState;
+
+	if (animationRunning && (int32_t)(now - nextAnimationAt) >= 0)
+	{
+		animationSegment = (animationSegment + 1) % NUM_SEGMENTS_SYMBOLE;
+		fill_solid(ledsSymbole, NUM_LED_SYMBOLE, CRGB::Black);
+		setSegment(animationSegment, CRGB::White);
+		changed = true;
+
+		if (!animationSlowingDown
+			&& (uint32_t)(now - animationStartedAt) >= animationFastDurationMs)
+		{
+			animationSlowingDown = true;
+			animationStepsRemaining = NUM_SEGMENTS_SYMBOLE + random(NUM_SEGMENTS_SYMBOLE);
+		}
+
+		if (animationSlowingDown)
+		{
+			animationStepsRemaining--;
+			animationStep++;
+			if (animationStepsRemaining == 0)
+			{
+				animationRunning = false;
+			}
+			else
+			{
+				nextAnimationAt = now + animationStartDelayMs
+					+ (uint32_t)animationStep * animationDelayIncreaseMs;
+			}
+		}
+		else
+		{
+			nextAnimationAt = now + animationStartDelayMs;
+		}
+	}
+
+	return changed;
+}
 
 
 constexpr uint8_t START_BYTE = 0xAA;
@@ -69,6 +149,9 @@ void setup()
 
 	pinMode(pinReset, INPUT_PULLUP);
 	pinMode(pinStart, INPUT_PULLUP);
+	previousStartState = digitalRead(pinStart);
+	previousResetState = digitalRead(pinReset);
+	randomSeed(analogRead(A0));
 
 
 	FastLED.addLeds<WS2812, DATA_PIN_SAULE, GRB>(ledsSaule, NUM_LED_SAULE);				// ACHTUNG! uuat ändern bei led streifen änderung
@@ -184,6 +267,10 @@ float calibrateDb(float db)
 
 void loop()
 {
+	if (updateSegmentAnimation())
+	{
+		FastLED.show();
+	}
 
 	// rechn dB scheis aus
 	float rms = getRMS();
