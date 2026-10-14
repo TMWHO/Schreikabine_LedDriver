@@ -284,10 +284,8 @@ float calibrateDb(float db)
 
 void loop()
 {
-	if (updateSegmentAnimation())
-	{
-		FastLED.show();
-	}
+
+
 
 	// rechn dB scheis aus
 	float rms = getRMS();
@@ -388,11 +386,12 @@ void loop()
 		markerIndex = constrain(markerIndex, LED_START, LED_END);
 		ledsSaule[markerIndex] = CRGB::Blue;
 	}
-
+	
+	updateSegmentAnimation();
+	
 	// setSegment(0, CRGB::Red);    // LEDs 0–11
 	// setSegment(1, CRGB::Yellow1);  // LEDs 12–23
 	// setSegment(2, CRGB::Blue);   // LEDs 24–35
-
 
 	FastLED.show();
 
